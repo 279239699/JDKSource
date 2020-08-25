@@ -47,7 +47,7 @@ import sun.misc.Unsafe;
  * {@link java.lang.Integer}. However, this class does extend
  * {@code Number} to allow uniform access by tools and utilities that
  * deal with numerically-based classes.
- *
+ * 通过CAS来实现了乐观锁
  * @since 1.5
  * @author Doug Lea
 */
@@ -179,7 +179,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
 
     /**
      * Atomically increments by one the current value.
-     *
+     * 自增函数
      * @return the updated value
      */
     public final int incrementAndGet() {
