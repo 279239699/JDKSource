@@ -4,7 +4,8 @@
  */
 
 package java.lang;
-import java.lang.ref.*;
+
+import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -221,7 +222,7 @@ public class ThreadLocal<T> {
      * @param firstValue value for the initial entry of the map
      */
     void createMap(Thread t, T firstValue) {
-        t.threadLocals = new ThreadLocalMap(this, firstValue);  // 注意,第一个参数this,指的是当前的ThreadLocal对下个
+        t.threadLocals = new ThreadLocalMap(this, firstValue);  // 注意,第一个参数this,指的是当前的ThreadLocal对像
     }
 
     /**

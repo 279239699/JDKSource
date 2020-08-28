@@ -383,6 +383,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * 位或运算符（|）从高位开始比较，两个数只要有一个为1则为1，否则就为0
      */
     static final int tableSizeFor(int cap) {
+
         int n = cap - 1;
         n |= n >>> 1;
         n |= n >>> 2;

@@ -60,6 +60,7 @@ public abstract class AbstractOwnableSynchronizer
 
     /**
      * The current owner of exclusive mode synchronization.
+     * 这个属性的存在,说明是独占锁
      */
     private transient Thread exclusiveOwnerThread;
 
