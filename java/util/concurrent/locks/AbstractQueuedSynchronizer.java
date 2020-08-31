@@ -621,7 +621,7 @@ public abstract class AbstractQueuedSynchronizer
         Node node = new Node(Thread.currentThread(), mode); //初始化节点,设置关联线程和模式(独占 or 共享)
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;   // 获取尾节点引用
-        if (pred != null) { // 尾节点不为空,说明队列已经初始化过
+        if (pred != null) { // 尾节点不为空,说明队列已经初始化过, 不是空队列
             node.prev = pred;   // 指定本次线程node的前驱节点, 其实即使把本次线程的node变成尾节点
             // 设置新节点为尾节点
             if (compareAndSetTail(pred, node)) {
@@ -810,8 +810,16 @@ public abstract class AbstractQueuedSynchronizer
      *
      * @param pred node's predecessor holding status
      * @param node the node
-     * @return {@code true} if thread should block
+     * @return {@code true} if thread should block 返回true表示应该阻塞当前线程
      * 该方法是判断当前线程获取锁失败之后是否需要挂起
+     *
+     * 该方法3个分支的说明
+     * 1.pred状态为SIGNAL,则返回true,表示要阻塞当前线程
+     * 2.pred状态为CANCELLED,则一直往队列头部回溯直到找到一个状态不为CANCELLED的结点,将当前节点node挂在这个结点的后面
+     * 3.pred的状态为初始化状态,此时通过compareAndSetWaitStatus(pred, ws, Node.SIGNAL)方法将pred的状态改为SIGNAL
+     *
+     * 其实这个方法的含义很简单,就是确保当前结点的前驱结点的状态为SIGNAL,SIGNAL意味着线程释放锁后会唤醒后面阻塞的线程。
+     * 毕竟,只有确保能够被唤醒，当前线程才能放心的阻塞
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;   //前驱节点的状态
@@ -859,7 +867,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if interrupted
      */
     private final boolean parkAndCheckInterrupt() {
-        LockSupport.park(this);
+        LockSupport.park(this); // 阻塞当前线程
         return Thread.interrupted();
     }
 
@@ -885,8 +893,8 @@ public abstract class AbstractQueuedSynchronizer
         boolean failed = true;  //标记是否成功获取锁
         try {
             boolean interrupted = false;    //标记线程是否被中断过
-            for (;;) {
-                final Node p = node.predecessor();  //获取前驱节点
+            for (;;) {  // 死循环,正常情况下线程只有获得锁才能跳出循环
+                final Node p = node.predecessor();  // 获得当前线程所在结点的前驱结点
                 if (p == head && tryAcquire(arg)) { //如果前驱是head,即该结点已成老二，那么便有资格去尝试获取锁
                     setHead(node);  // 获取成功,将当前节点设置为head节点
                     p.next = null; // help GC 原head节点出队,在某个时间点被GC回收
@@ -895,6 +903,8 @@ public abstract class AbstractQueuedSynchronizer
                 }
                 // 判断获取锁失败后是否可以挂起,若可以则挂起
                 // 假设B和C在竞争锁的过程中A一直持有锁，那么它们的tryAcquire操作都会失败，因此会走到下面的分支
+                // shouldParkAfterFailedAcquire判断是否要阻塞当前线程,其实就是看前驱节点的waitStatus是否=SIGNAL
+                // parkAndCheckInterrupt阻塞当前线程
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
                     interrupted = true; // 线程若被中断,设置interrupted为true
